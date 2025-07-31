@@ -1,8 +1,8 @@
 // index.js
-require('dotenv').config();           // ← loads DATABASE_URL & PORT
+require('dotenv').config();           // ← load .env
 const express = require('express');
 const cors    = require('cors');
-const pool    = require('./db');      // ← pg Pool configured in db.js
+const pool    = require('./db');      // ← your pg pool in db.js
 
 const app     = express();
 const PORT    = process.env.PORT || 5000;
@@ -48,6 +48,7 @@ app.post('/api/clients', async (req, res) => {
       first_name, last_name, email, phone,
       address_line1, address_line2, city, state, zip, country
     } = req.body;
+
     const result = await pool.query(
       `INSERT INTO public.clients
          (first_name, last_name, email, phone,
@@ -58,6 +59,7 @@ app.post('/api/clients', async (req, res) => {
       [first_name, last_name, email, phone,
        address_line1, address_line2, city, state, zip, country]
     );
+
     res.json({ message: 'Client created', id: result.rows[0].id });
   } catch (err) {
     console.error('Error creating client:', err);
@@ -73,6 +75,7 @@ app.put('/api/clients/:id', async (req, res) => {
       first_name, last_name, email, phone,
       address_line1, address_line2, city, state, zip, country
     } = req.body;
+
     const result = await pool.query(
       `UPDATE public.clients
          SET first_name    = $1,
@@ -89,6 +92,7 @@ app.put('/api/clients/:id', async (req, res) => {
       [first_name, last_name, email, phone,
        address_line1, address_line2, city, state, zip, country, id]
     );
+
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Client not found' });
     }
@@ -118,60 +122,8 @@ app.delete('/api/clients/:id', async (req, res) => {
 });
 
 // -------- INVOICES --------
-
-// GET all invoices (with client name)
-app.get('/api/invoices', async (req, res) => {
-  try {
-    const query = `
-      SELECT
-        i.id,
-        i.client_id,
-        i.invoice_number,
-        i.invoice_date,
-        i.status,
-        i.total_due,
-        CONCAT(c.first_name, ' ', c.last_name) AS client_name
-      FROM public.invoices i
-      LEFT JOIN public.clients c ON i.client_id = c.id;
-    `;
-    const result = await pool.query(query);
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching invoices:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET one invoice + its line items
-app.get('/api/invoices/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const hdr = await pool.query(
-      `SELECT
-         i.*, CONCAT(c.first_name,' ',c.last_name) AS client_name
-       FROM public.invoices i
-       LEFT JOIN public.clients c ON i.client_id = c.id
-       WHERE i.id = $1;`,
-      [id]
-    );
-    if (hdr.rows.length === 0) {
-      return res.status(404).json({ message: 'Invoice not found' });
-    }
-    const invoice = hdr.rows[0];
-    const items = await pool.query(
-      'SELECT * FROM public.invoice_line_items WHERE invoice_id = $1;',
-      [id]
-    );
-    invoice.line_items = items.rows;
-    res.json(invoice);
-  } catch (err) {
-    console.error('Error fetching invoice:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// (Repeat POST/PUT/DELETE for invoices exactly as shown previously,
-// using pool.query with $1… placeholders and result.rows / result.rowCount…)
+// (You’d update these the same way—use pool.query & result.rows / result.rowCount,
+// and switch your ? placeholders to $1, $2, …)
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
