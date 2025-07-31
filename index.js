@@ -1,5 +1,6 @@
 // index.js
 require('dotenv').config();           // ← load .env
+console.log('⏺  Loaded DATABASE_URL:', process.env.DATABASE_URL);
 const express = require('express');
 const cors    = require('cors');
 const pool    = require('./db');      // ← your pg pool in db.js
